@@ -118,9 +118,29 @@
       '<img class="snap" alt="Снимок" src="' + state.snap.url + '">' +
       '<div class="banner">Пробная версия: изображение пока не анализируется. Объект ищется по вашему местоположению или по названию.</div>' +
       '<p class="note">Снимок хранится только на телефоне, не сохраняется в «Фото» и удаляется после просмотра результата.</p>' +
-      '<div class="stack" style="margin-top:18px"><button class="btn" id="go">Узнать</button><button class="btn s" id="retake">Переснять</button></div></div>';
+      '<div class="stack" style="margin-top:18px"><button class="btn" id="go">Узнать</button>' +
+      '<button class="btn s" id="share">Найти по фото в другом приложении</button>' +
+      '<button class="btn s" id="byname">Ввести название</button>' +
+      '<button class="linkbtn" id="retake">Переснять</button></div>' +
+      '<p class="note">Поиск по фото в другом приложении: выберите Яндекс (или Google) в открывшемся списке, найдите название картины и вернитесь сюда: «Ввести название». В списке не нажимайте «Сохранить изображение», иначе снимок попадёт в «Фото».</p></div>';
     document.getElementById('go').onclick = function () { go('#/progress'); };
+    document.getElementById('byname').onclick = function () { go('#/search'); };
+    document.getElementById('share').onclick = shareSnap;
     document.getElementById('retake').onclick = function () { state.snap = null; go('#/camera'); };
+  }
+  function snapFile() {
+    var b64 = state.snap.url.split(',')[1], bin = atob(b64), n = bin.length, u = new Uint8Array(n), i;
+    for (i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
+    return new File([u], 'audiogid.jpg', { type: 'image/jpeg' });
+  }
+  function shareSnap() {
+    var f = snapFile();
+    if (navigator.canShare && navigator.canShare({ files: [f] })) {
+      navigator.share({ files: [f], title: 'Аудиогид' }).catch(function () { /* пользователь закрыл список */ });
+      Store.log({ method: 'share', title: 'Снимок передан в другое приложение', result: 'found' });
+    } else {
+      toast('Браузер не умеет передавать снимок. Откройте Яндекс или Google и загрузите фото вручную.');
+    }
   }
   function getPos() {
     return new Promise(function (res, rej) {
