@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Аудиогид — проверка</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Аудиогид">
+<meta name="theme-color" content="#F6F1E9">
+<style>
+  :root { --bg:#F6F1E9; --card:#FFFCF6; --text:#2F3A36; --muted:#5E6B65; --accent:#A9C5B0; --accent-text:#1F2B24; --line:#E1D9CB; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#25292E; --card:#30353B; --text:#ECE8E0; --muted:#B5BDB8; --accent:#8FB09A; --accent-text:#14201A; --line:#444A52; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); background:var(--bg); color:var(--text);
+         font: 17px/1.45 -apple-system, "SF Pro Text", system-ui, sans-serif; }
+  h1 { font-size: 22px; margin: 8px 0 4px; }
+  p.lead { color:var(--muted); margin: 0 0 16px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:16px; }
+  h2 { font-size: 17px; margin:0 0 8px; }
+  button { min-height:44px; padding:0 16px; border:0; border-radius:16px; background:var(--accent); color:var(--accent-text); font:inherit; font-weight:600; margin:4px 8px 4px 0; }
+  .out { margin-top:8px; color:var(--muted); white-space:pre-wrap; word-break:break-word; }
+  video, canvas { width:100%; border-radius:12px; margin-top:8px; background:#000; }
+  .ok { color:#2E6B45; } .bad { color:#9A3B2E; }
+  @media (prefers-color-scheme: dark) { .ok { color:#9BD1B0; } .bad { color:#E5A59A; } }
+</style>
+</head>
+<body>
+<h1>Аудиогид — проверка</h1>
+<p class="lead">Служебная страница для проверки хостинга и возможностей iPhone. Нажимайте кнопки сверху вниз.</p>
+
+<section>
+  <h2>1. Адрес и установка</h2>
+  <div id="env" class="out"></div>
+</section>
+
+<section>
+  <h2>2. Камера</h2>
+  <button id="camBtn">Включить камеру</button><button id="shotBtn" disabled>Сделать кадр</button>
+  <video id="video" playsinline muted hidden></video>
+  <canvas id="canvas" hidden></canvas>
+  <div id="camOut" class="out"></div>
+</section>
+
+<section>
+  <h2>3. Голос</h2>
+  <button id="voiceBtn">Проверить озвучивание</button>
+  <div id="voiceOut" class="out"></div>
+</section>
+
+<section>
+  <h2>4. Память</h2>
+  <button id="memBtn">Проверить хранилище</button>
+  <div id="memOut" class="out"></div>
+</section>
+
+<section>
+  <h2>5. Википедия</h2>
+  <button id="wikiBtn">Проверить доступ к Википедии</button>
+  <div id="wikiOut" class="out"></div>
+</section>
+
+<section>
+  <h2>6. Местоположение</h2>
+  <button id="geoBtn">Найти статьи рядом</button>
+  <div id="geoOut" class="out"></div>
+</section>
+
+<section>
+  <h2>Отчёт</h2>
+  <button id="repBtn">Скопировать отчёт</button>
+  <div id="repOut" class="out"></div>
+</section>
+
+<script>
+(function () {
+  var report = {};
+  function $(id) { return document.getElementById(id); }
+  function set(id, text, cls) { var el = $(id); el.textContent = text; el.className = 'out' + (cls ? ' ' + cls : ''); }
+  function mark(key, ok, note) { report[key] = (ok ? 'да' : 'НЕТ') + (note ? ' (' + note + ')' : ''); }
+
+  // 1. Адрес и установка
+  var standalone = (window.navigator.standalone === true) || window.matchMedia('(display-mode: standalone)').matches;
+  var https = location.protocol === 'https:';
+  var swSupported = 'serviceWorker' in navigator;
+  mark('HTTPS', https); mark('Запуск с экрана Домой', standalone);
+  mark('Service Worker поддерживается', swSupported);
+  set('env', 'Адрес: ' + location.origin + location.pathname + '\nHTTPS: ' + (https ? 'да' : 'НЕТ') +
+      '\nЗапущено с экрана «Домой»: ' + (standalone ? 'да' : 'нет') +
+      '\nРабота без сети (Service Worker): ' + (swSupported ? 'доступна' : 'НЕ поддерживается'), https ? 'ok' : 'bad');
+  if (swSupported) {
+    navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; })
+      .then(function () { mark('Service Worker зарегистрирован', true); })
+      .catch(function (e) { mark('Service Worker зарегистрирован', false, e.message); });
+  }
+
+  // 2. Камера
+  var stream = null;
+  $('camBtn').onclick = async function () {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+      var v = $('video'); v.srcObject = stream; v.hidden = false; await v.play();
+      $('shotBtn').disabled = false;
+      var s = stream.getVideoTracks()[0].getSettings();
+      mark('Камера', true, s.width + 'x' + s.height);
+      set('camOut', 'Камера работает: ' + s.width + ' × ' + s.height + '. Если iPhone спросил разрешение — оно получено.', 'ok');
+    } catch (e) { mark('Камера', false, e.name); set('camOut', 'Камера недоступна: ' + e.name + '. Проверьте разрешение: Настройки iOS — Safari — Камера.', 'bad'); }
+  };
+  $('shotBtn').onclick = function () {
+    var v = $('video'), c = $('canvas');
+    var k = Math.min(1, 1024 / Math.max(v.videoWidth, v.videoHeight));
+    c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+    c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); c.hidden = false;
+    mark('Кадр захвачен на холст', true, c.width + 'x' + c.height);
+    set('camOut', 'Кадр захвачен: ' + c.width + ' × ' + c.height + '. Откройте приложение «Фото»: нового снимка там быть не должно.', 'ok');
+  };
+
+  // 3. Голос
+  $('voiceBtn').onclick = function () {
+    if (!('speechSynthesis' in window)) { mark('Озвучивание', false); set('voiceOut', 'Озвучивание не поддерживается.', 'bad'); return; }
+    var go = function () {
+      var voices = speechSynthesis.getVoices();
+      var ru = voices.filter(function (v) { return /^ru/i.test(v.lang); });
+      var u = new SpeechSynthesisUtterance('Проверка озвучивания. Это Аудиогид.');
+      u.lang = 'ru-RU'; if (ru[0]) u.voice = ru[0];
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+      mark('Русские голоса', ru.length > 0, ru.map(function (v) { return v.name; }).join(', '));
+      set('voiceOut', 'Русских голосов: ' + ru.length + (ru.length ? '\n' + ru.map(function (v) { return v.name; }).join(', ') : '') +
+          '\nЕсли вы услышали фразу — озвучивание работает. Затем заблокируйте экран во время речи и проверьте, продолжится ли она.', ru.length ? 'ok' : 'bad');
+    };
+    if (speechSynthesis.getVoices().length) go(); else { speechSynthesis.onvoiceschanged = go; setTimeout(go, 800); }
+  };
+
+  // 4. Память
+  $('memBtn').onclick = async function () {
+    var lines = [];
+    try {
+      var persisted = navigator.storage && navigator.storage.persist ? await navigator.storage.persist() : false;
+      var est = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : null;
+      lines.push('Постоянное хранилище: ' + (persisted ? 'да' : 'нет'));
+      if (est) lines.push('Доступно: ' + Math.round(est.quota / 1048576) + ' МБ, занято: ' + Math.round(est.usage / 1048576) + ' МБ');
+      mark('Постоянное хранилище', persisted); if (est) mark('Квота хранилища, МБ', true, Math.round(est.quota / 1048576));
+    } catch (e) { lines.push('Оценка хранилища недоступна: ' + e.message); }
+    try {
+      await new Promise(function (res, rej) {
+        var r = indexedDB.open('audiogid-test', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('t'); };
+        r.onsuccess = function () {
+          var tx = r.result.transaction('t', 'readwrite'); tx.objectStore('t').put('ok', 'k');
+          tx.oncomplete = function () { r.result.close(); res(); }; tx.onerror = function () { rej(tx.error); };
+        };
+        r.onerror = function () { rej(r.error); };
+      });
+      lines.push('IndexedDB: запись и чтение работают'); mark('IndexedDB', true);
+    } catch (e) { lines.push('IndexedDB: ошибка ' + e.message); mark('IndexedDB', false, e.message); }
+    set('memOut', lines.join('\n'), 'ok');
+  };
+
+  // 5. Википедия
+  $('wikiBtn').onclick = async function () {
+    set('wikiOut', 'Запрос…');
+    try {
+      var t0 = performance.now();
+      var r = await fetch('https://ru.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent('Чёрный_квадрат'));
+      var j = await r.json(); var ms = Math.round(performance.now() - t0);
+      mark('Википедия доступна', r.ok, ms + ' мс');
+      set('wikiOut', 'Ответ получен за ' + ms + ' мс.\n' + j.title + ': ' + (j.extract || '').slice(0, 140) + '…', 'ok');
+    } catch (e) { mark('Википедия доступна', false, e.message); set('wikiOut', 'Нет доступа: ' + e.message, 'bad'); }
+    try {
+      var r2 = await fetch('https://www.wikidata.org/w/api.php?action=wbgetentities&ids=Q3305213&props=labels&languages=ru&format=json&origin=*');
+      var j2 = await r2.json(); mark('Викиданные доступны', r2.ok);
+      $('wikiOut').textContent += '\nВикиданные: ответ получен (' + (j2.entities && j2.entities.Q3305213.labels.ru ? j2.entities.Q3305213.labels.ru.value : 'без названия') + ').';
+    } catch (e) { mark('Викиданные доступны', false, e.message); $('wikiOut').textContent += '\nВикиданные: нет доступа (' + e.message + ').'; }
+  };
+
+  // 6. Местоположение
+  $('geoBtn').onclick = function () {
+    if (!navigator.geolocation) { mark('Геолокация', false); set('geoOut', 'Геолокация не поддерживается.', 'bad'); return; }
+    set('geoOut', 'Определяю местоположение…');
+    navigator.geolocation.getCurrentPosition(async function (p) {
+      try {
+        var url = 'https://ru.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=' + p.coords.latitude + '%7C' + p.coords.longitude +
+                  '&gsradius=500&gslimit=5&format=json&origin=*';
+        var j = await (await fetch(url)).json();
+        var list = (j.query && j.query.geosearch || []).map(function (x) { return x.title + ' (' + x.dist + ' м)'; });
+        mark('Геолокация', true, 'точность ' + Math.round(p.coords.accuracy) + ' м'); mark('Статьи рядом найдены', list.length > 0, list.length + ' шт.');
+        set('geoOut', 'Точность: ' + Math.round(p.coords.accuracy) + ' м\n' + (list.length ? list.join('\n') : 'Рядом статей не найдено.'), 'ok');
+      } catch (e) { mark('Статьи рядом найдены', false, e.message); set('geoOut', 'Ошибка запроса: ' + e.message, 'bad'); }
+    }, function (e) { mark('Геолокация', false, e.message); set('geoOut', 'Местоположение недоступно: ' + e.message, 'bad'); },
+    { enableHighAccuracy: true, timeout: 15000 });
+  };
+
+  // Отчёт (координаты в отчёт не попадают)
+  $('repBtn').onclick = async function () {
+    var text = 'Отчёт проверки Аудиогид\nАдрес: ' + location.origin + location.pathname + '\n' +
+      Object.keys(report).map(function (k) { return k + ': ' + report[k]; }).join('\n');
+    set('repOut', text);
+    try { await navigator.clipboard.writeText(text); $('repOut').textContent += '\n\nОтчёт скопирован. Вставьте его в сообщение.'; }
+    catch (e) { $('repOut').textContent += '\n\nСкопируйте текст выше вручную (нажмите и удерживайте).'; }
+  };
+})();
+</script>
+</body>
+</html>
