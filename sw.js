@@ -1,6 +1,6 @@
-// Служебный сценарий для проверки: сохраняет страницу в памяти устройства,
+﻿// Служебный сценарий для проверки: сохраняет страницу в памяти устройства,
 // чтобы она открывалась без сети.
-const CACHE = 'audiogid-check-v1';
+const CACHE = 'audiogid-check-v2';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -21,3 +21,4 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });
+

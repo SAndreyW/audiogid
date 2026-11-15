@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
@@ -11,35 +11,40 @@
 <meta name="apple-mobile-web-app-title" content="Аудиогид">
 <meta name="theme-color" content="#F6F1E9">
 <style>
-  :root { --bg:#F6F1E9; --card:#FFFCF6; --text:#2F3A36; --muted:#5E6B65; --accent:#A9C5B0; --accent-text:#1F2B24; --line:#E1D9CB; }
+  :root { --bg:#F6F1E9; --surface:#FFFCF6; --text:#2F3A36; --muted:#5E6B65; --accent:#A9C5B0; --on:#1F2B24; --line:#E1D9CB; --ok:#2E6B45; --bad:#9A3B2E;
+          --serif:"New York", ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, serif; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#25292E; --card:#30353B; --text:#ECE8E0; --muted:#B5BDB8; --accent:#8FB09A; --accent-text:#14201A; --line:#444A52; }
+    :root { --bg:#25292E; --surface:#30353B; --text:#ECE8E0; --muted:#B5BDB8; --accent:#8FB09A; --on:#14201A; --line:#444A52; --ok:#9BD1B0; --bad:#E5A59A; }
   }
-  * { box-sizing: border-box; }
-  body { margin:0; padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); background:var(--bg); color:var(--text);
-         font: 17px/1.45 -apple-system, "SF Pro Text", system-ui, sans-serif; }
-  h1 { font-size: 22px; margin: 8px 0 4px; }
-  p.lead { color:var(--muted); margin: 0 0 16px; }
-  section { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:16px; }
-  h2 { font-size: 17px; margin:0 0 8px; }
-  button { min-height:44px; padding:0 16px; border:0; border-radius:16px; background:var(--accent); color:var(--accent-text); font:inherit; font-weight:600; margin:4px 8px 4px 0; }
-  .out { margin-top:8px; color:var(--muted); white-space:pre-wrap; word-break:break-word; }
-  video, canvas { width:100%; border-radius:12px; margin-top:8px; background:#000; }
-  .ok { color:#2E6B45; } .bad { color:#9A3B2E; }
-  @media (prefers-color-scheme: dark) { .ok { color:#9BD1B0; } .bad { color:#E5A59A; } }
+  * { box-sizing:border-box; }
+  body { margin:0 auto; max-width:560px; padding:max(22px, env(safe-area-inset-top)) 20px max(36px, env(safe-area-inset-bottom)); background:var(--bg); color:var(--text);
+         font:16px/1.5 -apple-system, "SF Pro Text", system-ui, sans-serif; }
+  .kicker { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  h1 { font:600 38px/1.04 var(--serif); letter-spacing:-.015em; margin:6px 0 8px; }
+  p.lead { font-family:var(--serif); font-style:italic; color:var(--muted); font-size:17px; margin:0 0 22px; }
+  section { border-top:1px solid var(--line); padding:16px 0 8px; }
+  h2 { font:600 22px/1.15 var(--serif); letter-spacing:-.01em; margin:2px 0 10px; }
+  button { min-height:46px; padding:0 18px; border:0; border-radius:14px; background:var(--accent); color:var(--on); font:inherit; font-weight:700; margin:4px 8px 4px 0; }
+  button:disabled { opacity:.45; }
+  .out { margin-top:10px; color:var(--muted); white-space:pre-wrap; word-break:break-word; font-size:15px; }
+  .out.ok { color:var(--ok); } .out.bad { color:var(--bad); }
+  video, canvas { width:100%; border-radius:6px; margin-top:10px; background:#000; border:1px solid var(--line); box-shadow:0 10px 22px rgba(60,50,38,.18); }
 </style>
 </head>
 <body>
-<h1>Аудиогид — проверка</h1>
-<p class="lead">Служебная страница для проверки хостинга и возможностей iPhone. Нажимайте кнопки сверху вниз.</p>
+<div class="kicker">Проверка возможностей</div>
+<h1>Аудиогид</h1>
+<p class="lead">Служебная страница: проверяет камеру, голос, память и доступ к Википедии. Нажимайте кнопки сверху вниз.</p>
 
 <section>
-  <h2>1. Адрес и установка</h2>
+  <div class="kicker">Шаг 1</div>
+  <h2>Адрес и установка</h2>
   <div id="env" class="out"></div>
 </section>
 
 <section>
-  <h2>2. Камера</h2>
+  <div class="kicker">Шаг 2</div>
+  <h2>Камера</h2>
   <button id="camBtn">Включить камеру</button><button id="shotBtn" disabled>Сделать кадр</button>
   <video id="video" playsinline muted hidden></video>
   <canvas id="canvas" hidden></canvas>
@@ -47,30 +52,35 @@
 </section>
 
 <section>
-  <h2>3. Голос</h2>
+  <div class="kicker">Шаг 3</div>
+  <h2>Голос</h2>
   <button id="voiceBtn">Проверить озвучивание</button>
   <div id="voiceOut" class="out"></div>
 </section>
 
 <section>
-  <h2>4. Память</h2>
+  <div class="kicker">Шаг 4</div>
+  <h2>Память</h2>
   <button id="memBtn">Проверить хранилище</button>
   <div id="memOut" class="out"></div>
 </section>
 
 <section>
-  <h2>5. Википедия</h2>
+  <div class="kicker">Шаг 5</div>
+  <h2>Википедия</h2>
   <button id="wikiBtn">Проверить доступ к Википедии</button>
   <div id="wikiOut" class="out"></div>
 </section>
 
 <section>
-  <h2>6. Местоположение</h2>
+  <div class="kicker">Шаг 6</div>
+  <h2>Местоположение</h2>
   <button id="geoBtn">Найти статьи рядом</button>
   <div id="geoOut" class="out"></div>
 </section>
 
 <section>
+  <div class="kicker">Итог</div>
   <h2>Отчёт</h2>
   <button id="repBtn">Скопировать отчёт</button>
   <div id="repOut" class="out"></div>
@@ -206,3 +216,4 @@
 </script>
 </body>
 </html>
+
